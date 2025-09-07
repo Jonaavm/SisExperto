@@ -51,8 +51,8 @@
             <h2>🎯 Matriz de Confusión</h2>
         </div>
         <div class="card-body">
-            <div class="chart-container">
-                <canvas id="confusionMatrix" width="500" height="400"></canvas>
+            <div class="confusion-matrix-container">
+                <div id="confusionMatrixTable"></div>
             </div>
             <div id="confusionDetails" class="confusion-details">
                 <!-- Detalles adicionales de la matriz -->
@@ -83,8 +83,8 @@
             </div>
             
             <div class="tree-text-container">
-                <h4>Representación Textual del Árbol</h4>
-                <pre id="treeTextOutput" class="tree-text"></pre>
+                <h4>Representación Textual del Árbol (Formato J48)</h4>
+                <div id="treeTextOutput" class="tree-text"></div>
             </div>
         </div>
     </div>
@@ -581,6 +581,73 @@
 }
 
 /* Mejoras para la matriz de confusión */
+.confusion-matrix-container {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.confusion-matrix-table {
+    border-collapse: collapse;
+    font-family: 'Arial', sans-serif;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.confusion-matrix-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.confusion-matrix-table td {
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    border: 1px solid #e0e6ed;
+    position: relative;
+    min-width: 80px;
+    min-height: 60px;
+}
+
+.confusion-matrix-table .row-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #2c3e50;
+    font-weight: bold;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+.confusion-matrix-table .correct-prediction {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+    box-shadow: inset 0 0 10px rgba(40, 167, 69, 0.2);
+}
+
+.confusion-matrix-table .incorrect-prediction {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    box-shadow: inset 0 0 10px rgba(220, 53, 69, 0.2);
+}
+
+.confusion-matrix-table .empty-cell {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.confusion-matrix-table .percentage {
+    font-size: 12px;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+}
+
 .confusion-details {
     margin-top: 20px;
     background: #f8f9fa;
@@ -622,6 +689,81 @@
     font-weight: bold;
     color: #27ae60;
     margin-top: 4px;
+}
+
+/* Estilos para árbol J48 estilo Weka */
+.j48-tree-container {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    background: #ffffff;
+    border: 2px solid #cccccc;
+    padding: 15px;
+    margin: 10px 0;
+    overflow: auto;
+    max-height: 600px;
+    color: #000000;
+}
+
+.j48-tree-header {
+    font-weight: bold;
+    color: #000080;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #cccccc;
+}
+
+.j48-node {
+    margin: 2px 0;
+    position: relative;
+}
+
+.j48-internal {
+    color: #000080;
+    font-weight: normal;
+}
+
+.j48-leaf {
+    color: #008000;
+    font-weight: bold;
+}
+
+.j48-attribute {
+    color: #000080;
+    font-weight: bold;
+}
+
+.j48-value {
+    color: #800080;
+}
+
+.j48-class {
+    color: #008000;
+    font-weight: bold;
+}
+
+.j48-instances {
+    color: #808080;
+    font-style: normal;
+}
+
+.j48-confidence {
+    color: #ff6600;
+}
+
+/* Árbol texto plano estilo J48 */
+.j48-text-output {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.3;
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #cccccc;
+    padding: 15px;
+    margin: 10px 0;
+    white-space: pre;
+    overflow: auto;
+    max-height: 500px;
 }
 </style>
 
@@ -832,206 +974,81 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function displayConfusionMatrix(matrix, classNames) {
-        const canvas = document.getElementById('confusionMatrix');
-        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('confusionMatrixTable');
         
-        // Destroy existing chart
-        if (charts.confusionMatrix) {
-            charts.confusionMatrix.destroy();
-        }
+        // Calculate total samples and percentages
+        const totalSamples = matrix.flat().reduce((sum, val) => sum + val, 0);
         
-        // Create a better heatmap visualization
-        const total = matrix.flat().reduce((sum, val) => sum + val, 0);
-        const maxValue = Math.max(...matrix.flat());
+        // Create table HTML
+        let tableHTML = '<table class="confusion-matrix-table">';
         
-        // Prepare data for matrix heatmap
-        const matrixData = [];
-        for (let i = 0; i < classNames.length; i++) {
-            for (let j = 0; j < classNames.length; j++) {
+        // Header row
+        tableHTML += '<thead><tr>';
+        tableHTML += '<th style="background: #6c757d;">Clasificado como →</th>';
+        classNames.forEach(className => {
+            tableHTML += `<th>${className}</th>`;
+        });
+        tableHTML += '<th style="background: #6c757d;">Total</th>';
+        tableHTML += '</tr></thead>';
+        
+        // Data rows
+        tableHTML += '<tbody>';
+        classNames.forEach((actualClass, i) => {
+            tableHTML += '<tr>';
+            
+            // Row header
+            tableHTML += `<td class="row-header">${actualClass}</td>`;
+            
+            // Data cells
+            let rowTotal = 0;
+            classNames.forEach((predictedClass, j) => {
                 const value = matrix[i][j];
-                const percentage = ((value / total) * 100).toFixed(1);
-                matrixData.push({
-                    x: j,
-                    y: classNames.length - 1 - i, // Flip Y axis
-                    v: value,
-                    percentage: percentage,
-                    actual: classNames[i],
-                    predicted: classNames[j],
-                    isCorrect: i === j
-                });
-            }
-        }
-        
-        charts.confusionMatrix = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Matriz de Confusión',
-                    data: matrixData,
-                    backgroundColor: function(context) {
-                        const point = context.parsed;
-                        const value = point.v;
-                        const isCorrect = point.isCorrect;
-                        
-                        if (value === 0) {
-                            return 'rgba(240, 240, 240, 0.5)';
-                        }
-                        
-                        const intensity = Math.min(value / maxValue, 1);
-                        
-                        if (isCorrect) {
-                            // Diagonal (correct predictions) - Green gradient
-                            return `rgba(46, 125, 50, ${0.3 + intensity * 0.7})`;
-                        } else {
-                            // Off-diagonal (incorrect predictions) - Red gradient
-                            return `rgba(198, 40, 40, ${0.3 + intensity * 0.7})`;
-                        }
-                    },
-                    borderColor: function(context) {
-                        const point = context.parsed;
-                        return point.isCorrect ? 'rgba(46, 125, 50, 1)' : 'rgba(198, 40, 40, 1)';
-                    },
-                    borderWidth: 2,
-                    pointRadius: function(context) {
-                        const point = context.parsed;
-                        const value = point.v;
-                        return Math.max(15, Math.min(40, (value / maxValue) * 35 + 15));
-                    }
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: {
-                    padding: 20
-                },
-                scales: {
-                    x: {
-                        type: 'linear',
-                        min: -0.5,
-                        max: classNames.length - 0.5,
-                        ticks: {
-                            stepSize: 1,
-                            callback: function(value) {
-                                return classNames[Math.round(value)] || '';
-                            },
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Clase Predicha',
-                            font: {
-                                size: 16,
-                                weight: 'bold'
-                            },
-                            color: '#333'
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0,0,0,0.1)'
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        min: -0.5,
-                        max: classNames.length - 0.5,
-                        ticks: {
-                            stepSize: 1,
-                            callback: function(value) {
-                                const index = classNames.length - 1 - Math.round(value);
-                                return classNames[index] || '';
-                            },
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Clase Real',
-                            font: {
-                                size: 16,
-                                weight: 'bold'
-                            },
-                            color: '#333'
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0,0,0,0.1)'
-                        }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Matriz de Confusión',
-                        font: {
-                            size: 18,
-                            weight: 'bold'
-                        },
-                        color: '#333',
-                        padding: 20
-                    },
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 12
-                        },
-                        callbacks: {
-                            title: function() {
-                                return 'Detalles de Predicción';
-                            },
-                            label: function(context) {
-                                const point = context.raw;
-                                return [
-                                    `Clase Real: ${point.actual}`,
-                                    `Clase Predicha: ${point.predicted}`,
-                                    `Cantidad: ${point.v}`,
-                                    `Porcentaje: ${point.percentage}%`,
-                                    point.isCorrect ? '✅ Predicción Correcta' : '❌ Predicción Incorrecta'
-                                ];
-                            }
-                        }
-                    }
-                },
-                onHover: function(event, elements) {
-                    event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                const percentage = ((value / totalSamples) * 100).toFixed(1);
+                const isCorrect = i === j;
+                const cellClass = value === 0 ? 'empty-cell' : (isCorrect ? 'correct-prediction' : 'incorrect-prediction');
+                
+                tableHTML += `<td class="${cellClass}">`;
+                tableHTML += `<div style="font-size: 18px; font-weight: bold;">${value}</div>`;
+                if (value > 0) {
+                    tableHTML += `<span class="percentage">(${percentage}%)</span>`;
                 }
-            }
+                tableHTML += '</td>';
+                
+                rowTotal += value;
+            });
+            
+            // Row total
+            tableHTML += `<td style="background: #e9ecef; font-weight: bold; color: #495057;">${rowTotal}</td>`;
+            tableHTML += '</tr>';
         });
         
-        // Add value labels on the matrix
-        setTimeout(() => {
-            const chartInstance = charts.confusionMatrix;
-            const ctx = chartInstance.ctx;
-            
-            chartInstance.data.datasets[0].data.forEach((point, index) => {
-                const meta = chartInstance.getDatasetMeta(0);
-                const element = meta.data[index];
-                
-                if (element && point.v > 0) {
-                    const position = element.getProps(['x', 'y']);
-                    
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = point.v > maxValue * 0.5 ? 'white' : 'black';
-                    ctx.font = 'bold 12px Arial';
-                    ctx.fillText(point.v.toString(), position.x, position.y);
-                    ctx.restore();
-                }
-            });
-        }, 100);
+        // Footer row with column totals
+        tableHTML += '<tr>';
+        tableHTML += '<td style="background: #6c757d; color: white; font-weight: bold;">Total</td>';
+        classNames.forEach((_, j) => {
+            const colTotal = matrix.reduce((sum, row) => sum + row[j], 0);
+            tableHTML += `<td style="background: #e9ecef; font-weight: bold; color: #495057;">${colTotal}</td>`;
+        });
+        tableHTML += `<td style="background: #6c757d; color: white; font-weight: bold;">${totalSamples}</td>`;
+        tableHTML += '</tr>';
+        
+        tableHTML += '</tbody></table>';
+        
+        // Add legend
+        tableHTML += `
+            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 20px; font-size: 14px;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 20px; height: 20px; background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border-radius: 3px;"></div>
+                    <span>Predicciones Correctas</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 20px; height: 20px; background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); border-radius: 3px;"></div>
+                    <span>Predicciones Incorrectas</span>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = tableHTML;
         
         // Display additional confusion matrix details
         displayConfusionDetails(matrix, classNames);
@@ -1144,139 +1161,134 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear container
         container.innerHTML = '';
         
-        // Create Weka-style tree visualization
-        const treeHTML = createWekaStyleTree(treeStructure);
-        container.innerHTML = treeHTML;
+        // Create J48-style tree visualization
+        const j48HTML = createJ48StyleTree(treeStructure);
+        container.innerHTML = j48HTML;
         
-        // Display text representation in Weka format
-        textOutput.textContent = generateWekaTreeText(treeStructure, 0);
+        // Display text representation in J48 format
+        const j48Text = generateJ48TreeText(treeStructure, '', '');
+        textOutput.innerHTML = `<div class="j48-text-output">${j48Text}</div>`;
         
         // Add tree controls functionality
         setupTreeControls();
     }
     
-    function createWekaStyleTree(node, level = 0, isRoot = true) {
+    function createJ48StyleTree(node, level = 0, condition = '') {
         if (!node) return '';
-        
-        const isLeaf = !node.children || node.children.length === 0;
         
         let html = '';
         
-        if (isRoot) {
-            html += '<div class="weka-tree-container">';
+        if (level === 0) {
+            html += '<div class="j48-tree-container">';
+            html += '<div class="j48-tree-header">J48 pruned tree</div>';
+            html += '<div class="j48-tree-header">------------------</div>';
         }
         
-        html += `<div class="weka-node ${isLeaf ? 'leaf-node' : 'internal-node'}" data-level="${level}">`;
+        const indent = '|   '.repeat(level);
+        const isLeaf = !node.children || node.children.length === 0;
+        
+        if (level > 0 && condition) {
+            html += `<div class="j48-node">${indent.slice(0, -4)}${condition}</div>`;
+        }
         
         if (isLeaf) {
-            // Leaf node - Weka style
-            html += `<div class="node-content leaf-content">`;
-            html += `<span class="class-label">${node.class || 'Unknown'}</span>`;
-            if (node.samples) {
-                html += ` <span class="sample-count">(${node.samples})</span>`;
-            }
-            if (node.confidence) {
-                html += ` <span class="confidence">[${(node.confidence * 100).toFixed(1)}%]</span>`;
-            }
-            html += `</div>`;
-        } else {
-            // Internal node - Weka style
-            html += `<div class="node-content internal-content">`;
-            html += `<span class="feature-name">${node.feature}</span>`;
-            if (node.samples) {
-                html += ` <span class="sample-count">(${node.samples})</span>`;
-            }
-            html += `</div>`;
+            // Leaf node - J48 style
+            const leafText = `${indent}<span class="j48-class">${node.class || 'unknown'}</span>`;
+            const instancesText = node.samples ? ` <span class="j48-instances">(${node.samples})</span>` : '';
+            const confidenceText = node.confidence ? ` <span class="j48-confidence">[${(node.confidence * 100).toFixed(1)}%]</span>` : '';
             
-            // Add branches
+            html += `<div class="j48-node j48-leaf">${leafText}${instancesText}${confidenceText}</div>`;
+        } else {
+            // Internal node - J48 style
+            const attributeText = `${indent}<span class="j48-attribute">${node.feature}</span>`;
+            const instancesText = node.samples ? ` <span class="j48-instances">(${node.samples})</span>` : '';
+            
+            html += `<div class="j48-node j48-internal">${attributeText}${instancesText}</div>`;
+            
+            // Process children
             if (node.children && node.children.length > 0) {
-                html += '<div class="weka-branches">';
-                
                 node.children.forEach((child, index) => {
-                    html += '<div class="weka-branch">';
-                    
-                    // Branch condition/label
-                    html += `<div class="branch-label">`;
+                    let branchCondition = '';
                     if (child.condition) {
-                        html += child.condition;
+                        branchCondition = child.condition;
                     } else if (child.value !== undefined) {
-                        html += `= ${child.value}`;
+                        branchCondition = `= <span class="j48-value">${child.value}</span>`;
                     } else {
-                        html += `Branch ${index + 1}`;
+                        branchCondition = `branch_${index}`;
                     }
-                    html += `</div>`;
                     
-                    // Recursive child nodes
-                    html += '<div class="branch-content">';
-                    html += createWekaStyleTree(child, level + 1, false);
-                    html += '</div>';
+                    const isLastChild = index === node.children.length - 1;
+                    const nextIndent = level === 0 ? '' : (isLastChild ? '    ' : '|   ');
                     
-                    html += '</div>';
+                    html += createJ48StyleTree(child, level + 1, branchCondition);
                 });
-                
-                html += '</div>';
             }
         }
         
-        html += '</div>';
-        
-        if (isRoot) {
+        if (level === 0) {
+            html += '<br><div class="j48-tree-header">------------------</div>';
+            html += `<div style="margin-top: 10px; font-size: 11px; color: #666;">Number of Leaves: ${countLeaves(node)}</div>`;
+            html += `<div style="font-size: 11px; color: #666;">Size of the tree: ${countNodes(node)}</div>`;
             html += '</div>';
         }
         
         return html;
     }
     
-    function generateWekaTreeText(node, level, branchCondition = '') {
+    function generateJ48TreeText(node, prefix = '', condition = '') {
         if (!node) return '';
         
-        const indent = '|   '.repeat(level);
         let text = '';
-        
-        if (level > 0) {
-            text += indent.slice(0, -4) + '|   ';
-        }
-        
-        if (branchCondition) {
-            text += branchCondition + '\n';
-            text += indent;
-        }
-        
         const isLeaf = !node.children || node.children.length === 0;
         
+        if (condition) {
+            text += prefix + condition + '\n';
+        }
+        
         if (isLeaf) {
-            text += `${node.class || 'Unknown'}`;
-            if (node.samples) {
-                text += ` (${node.samples})`;
-            }
-            if (node.confidence) {
-                text += ` [${(node.confidence * 100).toFixed(1)}%]`;
-            }
+            const leafPrefix = condition ? prefix + '|   ' : prefix;
+            text += `${leafPrefix}: ${node.class || 'unknown'}`;
+            if (node.samples) text += ` (${node.samples})`;
+            if (node.confidence) text += ` [${(node.confidence * 100).toFixed(1)}%]`;
             text += '\n';
         } else {
-            text += `${node.feature}`;
-            if (node.samples) {
-                text += ` (${node.samples})`;
-            }
-            text += '\n';
+            const nodePrefix = condition ? prefix + '|   ' : prefix;
             
-            if (node.children) {
+            if (node.children && node.children.length > 0) {
                 node.children.forEach((child, index) => {
-                    let condition = '';
+                    let branchCondition = `${node.feature}`;
                     if (child.condition) {
-                        condition = child.condition;
+                        branchCondition += ` ${child.condition}`;
                     } else if (child.value !== undefined) {
-                        condition = `= ${child.value}`;
+                        branchCondition += ` = ${child.value}`;
                     } else {
-                        condition = `Branch ${index + 1}`;
+                        branchCondition += ` branch_${index}`;
                     }
                     
-                    text += generateWekaTreeText(child, level + 1, condition);
+                    const isLastChild = index === node.children.length - 1;
+                    const nextPrefix = nodePrefix + (isLastChild ? '    ' : '|   ');
+                    
+                    text += generateJ48TreeText(child, nextPrefix, branchCondition);
                 });
             }
         }
         
         return text;
+    }
+    
+    function countLeaves(node) {
+        if (!node) return 0;
+        if (!node.children || node.children.length === 0) return 1;
+        return node.children.reduce((count, child) => count + countLeaves(child), 0);
+    }
+    
+    function countNodes(node) {
+        if (!node) return 0;
+        let count = 1;
+        if (node.children) {
+            count += node.children.reduce((total, child) => total + countNodes(child), 0);
+        }
+        return count;
     }
     
     function setupTreeControls() {

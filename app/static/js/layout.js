@@ -1,6 +1,44 @@
 // Layout JavaScript - Sistema Experto
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Clean corrupted localStorage data on page load
+    try {
+        const storageManager = window.StorageManager || (window.StorageManager = {
+            cleanCorruptedData: function() {
+                try {
+                    const keys = Object.keys(localStorage);
+                    let cleaned = 0;
+                    
+                    keys.forEach(key => {
+                        try {
+                            const item = localStorage.getItem(key);
+                            if (item) {
+                                JSON.parse(item); // Test if it's valid JSON
+                            }
+                        } catch (error) {
+                            console.warn(`Removing corrupted localStorage item: ${key}`);
+                            localStorage.removeItem(key);
+                            cleaned++;
+                        }
+                    });
+                    
+                    if (cleaned > 0) {
+                        console.log(`Cleaned ${cleaned} corrupted localStorage items`);
+                    }
+                    
+                    return cleaned;
+                } catch (error) {
+                    console.error('Error cleaning localStorage:', error);
+                    return 0;
+                }
+            }
+        });
+        
+        storageManager.cleanCorruptedData();
+    } catch (error) {
+        console.error('Error initializing storage cleanup:', error);
+    }
+    
     // Mobile navigation toggle
     const navToggle = document.getElementById('navToggle');
     const navLinks = document.querySelector('.nav-links');
@@ -167,7 +205,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.storageHelper = {
         set: function(key, value) {
             try {
-                localStorage.setItem(key, JSON.stringify(value));
+                // Validate that the value can be serialized
+                const serialized = JSON.stringify(value);
+                localStorage.setItem(key, serialized);
                 return true;
             } catch (error) {
                 console.error('Error saving to localStorage:', error);
@@ -178,7 +218,17 @@ document.addEventListener('DOMContentLoaded', function() {
         get: function(key, defaultValue = null) {
             try {
                 const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : defaultValue;
+                if (!item) return defaultValue;
+                
+                // Try to parse the JSON
+                try {
+                    return JSON.parse(item);
+                } catch (parseError) {
+                    console.warn(`Invalid JSON in localStorage for key "${key}":`, item);
+                    // Remove corrupted data
+                    localStorage.removeItem(key);
+                    return defaultValue;
+                }
             } catch (error) {
                 console.error('Error reading from localStorage:', error);
                 return defaultValue;
@@ -192,6 +242,46 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (error) {
                 console.error('Error removing from localStorage:', error);
                 return false;
+            }
+        },
+        
+        clear: function() {
+            try {
+                localStorage.clear();
+                return true;
+            } catch (error) {
+                console.error('Error clearing localStorage:', error);
+                return false;
+            }
+        },
+        
+        // Clean corrupted data from localStorage
+        cleanCorruptedData: function() {
+            try {
+                const keys = Object.keys(localStorage);
+                let cleaned = 0;
+                
+                keys.forEach(key => {
+                    try {
+                        const item = localStorage.getItem(key);
+                        if (item) {
+                            JSON.parse(item); // Test if it's valid JSON
+                        }
+                    } catch (error) {
+                        console.warn(`Removing corrupted localStorage item: ${key}`);
+                        localStorage.removeItem(key);
+                        cleaned++;
+                    }
+                });
+                
+                if (cleaned > 0) {
+                    console.log(`Cleaned ${cleaned} corrupted localStorage items`);
+                }
+                
+                return cleaned;
+            } catch (error) {
+                console.error('Error cleaning localStorage:', error);
+                return 0;
             }
         }
     };
@@ -258,7 +348,14 @@ window.apiHelper = {
             
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
-                return await response.json();
+                try {
+                    return await response.json();
+                } catch (jsonError) {
+                    console.error('Error parsing JSON response:', jsonError);
+                    const textResponse = await response.text();
+                    console.warn('Response was not valid JSON:', textResponse);
+                    return { error: 'Invalid JSON response', raw: textResponse };
+                }
             } else {
                 return await response.text();
             }
@@ -361,3 +458,36 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Global error handling for unhandled promise rejections and JSON errors
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    
+    // Check if it's a JSON parsing error
+    if (event.reason && event.reason.message && event.reason.message.includes('JSON')) {
+        console.warn('JSON parsing error detected, cleaning localStorage...');
+        try {
+            // Clean potentially corrupted localStorage
+            if (window.StorageManager && window.StorageManager.cleanCorruptedData) {
+                window.StorageManager.cleanCorruptedData();
+            }
+        } catch (cleanupError) {
+            console.error('Error during localStorage cleanup:', cleanupError);
+        }
+        
+        // Prevent the error from showing in console if it's just a JSON parsing issue
+        event.preventDefault();
+    }
+});
+
+// Global error handler for synchronous errors
+window.addEventListener('error', function(event) {
+    // Log the error but don't show it to users unless it's critical
+    if (event.error && event.error.message && 
+        (event.error.message.includes('JSON') || event.error.message.includes('localStorage'))) {
+        console.warn('Storage-related error suppressed:', event.error.message);
+        event.preventDefault();
+    }
+});
+
+console.log('Layout JavaScript loaded successfully with enhanced error handling');

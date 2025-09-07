@@ -38,5 +38,15 @@
     "created_at": "2025-09-06T18:47:34.859226",
     "model_path": "models\\final_model.joblib",
     "accuracy": 0.9200000000000002
+  },
+  {
+    "id": "model_1757209655",
+    "model_id": "model_1757209655",
+    "name": "ID3_model_1757209655",
+    "algorithm": "id3",
+    "target": "variety",
+    "created_at": "2025-09-06T19:47:35.568586",
+    "model_path": "models\\final_model.joblib",
+    "accuracy": 0.9200000000000002
   }
 ]

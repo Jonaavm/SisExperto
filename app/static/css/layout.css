@@ -15,7 +15,7 @@ body {
 
 /* Navigation */
 .main-nav {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4b0378b1 0%, #683b95 100%);
     color: white;
     padding: 0;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -309,5 +309,56 @@ a:focus {
     
     .main-footer {
         background: #111;
+    }
+}
+
+/* Forced Colors Mode support (replaces deprecated -ms-high-contrast) */
+@media (forced-colors: active) {
+    .main-nav {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonBorder;
+    }
+    
+    .nav-link {
+        color: LinkText;
+        forced-color-adjust: none;
+    }
+    
+    .nav-link:hover,
+    .nav-link:focus {
+        background: Highlight;
+        color: HighlightText;
+    }
+    
+    .btn {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonBorder;
+        forced-color-adjust: none;
+    }
+    
+    .btn:hover,
+    .btn:focus {
+        background: Highlight;
+        color: HighlightText;
+    }
+    
+    .card {
+        background: Canvas;
+        color: CanvasText;
+        border: 1px solid ButtonBorder;
+    }
+    
+    .alert {
+        background: Canvas;
+        color: CanvasText;
+        border: 2px solid ButtonBorder;
+    }
+    
+    /* Ensure proper contrast for important elements */
+    .main-content {
+        background: Canvas;
+        color: CanvasText;
     }
 }
