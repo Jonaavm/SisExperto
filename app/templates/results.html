@@ -1,0 +1,1539 @@
+{% extends "layout.html" %}
+
+{% block title %}Resultados - Sistema Experto{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <div class="header-section">
+        <h1>📊 Resultados del Modelo</h1>
+        <p>Análisis completo del rendimiento y visualizaciones</p>
+    </div>
+
+    <!-- Selección de Modelo para Resultados -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🔍 Seleccionar Modelo para Análisis</h2>
+        </div>
+        <div class="card-body">
+            <div class="model-selection">
+                <select id="resultsModelSelect" class="form-select">
+                    <option value="">Selecciona un modelo para ver resultados...</option>
+                </select>
+                <button id="refreshResultsModels" class="btn btn-secondary">
+                    <i>🔄</i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Métricas de Rendimiento -->
+    <div class="card" id="metricsCard" style="display: none;">
+        <div class="card-header">
+            <h2>📈 Métricas de Rendimiento</h2>
+        </div>
+        <div class="card-body">
+            <div class="metrics-grid" id="metricsGrid">
+                <!-- Las métricas se cargarán dinámicamente -->
+            </div>
+            
+            <div class="metrics-table-container">
+                <h3>📋 Reporte Detallado por Clase</h3>
+                <div id="classificationReport" class="table-container">
+                    <!-- Tabla de reporte de clasificación -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matriz de Confusión -->
+    <div class="card" id="confusionCard" style="display: none;">
+        <div class="card-header">
+            <h2>🎯 Matriz de Confusión</h2>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="confusionMatrix" width="500" height="400"></canvas>
+            </div>
+            <div id="confusionDetails" class="confusion-details">
+                <!-- Detalles adicionales de la matriz -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Árbol de Decisión -->
+    <div class="card" id="treeCard" style="display: none;">
+        <div class="card-header">
+            <h2>🌳 Árbol de Decisión</h2>
+        </div>
+        <div class="card-body">
+            <div class="tree-controls">
+                <button id="expandTree" class="btn btn-info">
+                    <i>🔍</i> Expandir Todo
+                </button>
+                <button id="collapseTree" class="btn btn-info">
+                    <i>🔒</i> Colapsar Todo
+                </button>
+                <button id="downloadTree" class="btn btn-success">
+                    <i>💾</i> Descargar Imagen
+                </button>
+            </div>
+            
+            <div class="tree-container" id="treeContainer">
+                <div id="treeVisualization"></div>
+            </div>
+            
+            <div class="tree-text-container">
+                <h4>Representación Textual del Árbol</h4>
+                <pre id="treeTextOutput" class="tree-text"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análisis de Características -->
+    <div class="card" id="featuresCard" style="display: none;">
+        <div class="card-header">
+            <h2>🔬 Análisis de Características</h2>
+        </div>
+        <div class="card-body">
+            <div class="features-analysis">
+                <div class="feature-importance">
+                    <h3>Importancia de Características</h3>
+                    <canvas id="featureImportanceChart" width="400" height="300"></canvas>
+                </div>
+                
+                <div class="feature-stats">
+                    <h3>Estadísticas de Características</h3>
+                    <div id="featureStatsTable" class="table-container">
+                        <!-- Tabla de estadísticas -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparación de Modelos -->
+    <div class="card">
+        <div class="card-header">
+            <h2>⚖️ Comparación de Modelos</h2>
+        </div>
+        <div class="card-body">
+            <div class="comparison-controls">
+                <button id="loadComparison" class="btn btn-primary">
+                    <i>📊</i> Cargar Comparación
+                </button>
+                <button id="exportResults" class="btn btn-success">
+                    <i>📤</i> Exportar Resultados
+                </button>
+            </div>
+            
+            <div id="comparisonContainer" class="comparison-container">
+                <canvas id="comparisonChart" width="600" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.results-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header-section h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.header-section p {
+    color: #7f8c8d;
+    font-size: 1.1em;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.model-selection {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.form-select {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.metric-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+
+.metric-value {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.metric-label {
+    font-size: 1.1em;
+    color: #7f8c8d;
+    font-weight: 600;
+}
+
+.metric-description {
+    font-size: 0.9em;
+    color: #95a5a6;
+    margin-top: 5px;
+}
+
+.metrics-table-container {
+    margin-top: 30px;
+}
+
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.weka-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.weka-table th,
+.weka-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.weka-table th {
+    background: #f8f9fa;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.weka-table tr:hover {
+    background: #f5f5f5;
+}
+
+.chart-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.confusion-details {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.tree-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tree-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    overflow: auto;
+    max-height: 600px;
+}
+
+.tree-text-container {
+    margin-top: 20px;
+}
+
+.tree-text {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 20px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: auto;
+    max-height: 400px;
+    white-space: pre-wrap;
+}
+
+.features-analysis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+@media (max-width: 768px) {
+    .features-analysis {
+        grid-template-columns: 1fr;
+    }
+}
+
+.feature-importance,
+.feature-stats {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.comparison-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.comparison-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+/* Estilo similar a Weka */
+.weka-style {
+    font-family: 'Courier New', monospace;
+    background: #f0f0f0;
+    border: 2px solid #999;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.weka-header {
+    background: #e0e0e0;
+    padding: 10px;
+    border-bottom: 1px solid #999;
+    font-weight: bold;
+}
+
+.node {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 2px;
+    display: inline-block;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.node:hover {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.node.leaf {
+    background: #e8f5e8;
+    border-color: #4caf50;
+}
+
+.tree-level-0 { margin-left: 0px; }
+.tree-level-1 { margin-left: 20px; }
+.tree-level-2 { margin-left: 40px; }
+.tree-level-3 { margin-left: 60px; }
+.tree-level-4 { margin-left: 80px; }
+
+/* Estilos para árbol estilo Weka */
+.weka-tree-container {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px 0;
+    overflow: auto;
+    max-height: 800px;
+}
+
+.weka-node {
+    margin: 5px 0;
+    position: relative;
+}
+
+.weka-node.internal-node > .node-content {
+    font-weight: bold;
+    color: #2c3e50;
+    background: linear-gradient(90deg, #e8f4fd 0%, #ffffff 100%);
+    padding: 4px 8px;
+    border-left: 3px solid #3498db;
+    margin-bottom: 8px;
+    border-radius: 3px;
+}
+
+.weka-node.leaf-node > .node-content {
+    color: #27ae60;
+    background: linear-gradient(90deg, #e8f6f0 0%, #ffffff 100%);
+    padding: 4px 8px;
+    border-left: 3px solid #27ae60;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.feature-name {
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.class-label {
+    color: #27ae60;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.sample-count {
+    color: #7f8c8d;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.confidence {
+    color: #e67e22;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.weka-branches {
+    margin-left: 20px;
+    border-left: 2px dotted #bdc3c7;
+    padding-left: 10px;
+}
+
+.weka-branch {
+    margin: 8px 0;
+    position: relative;
+}
+
+.weka-branch::before {
+    content: '├─';
+    position: absolute;
+    left: -12px;
+    color: #bdc3c7;
+    font-weight: bold;
+}
+
+.weka-branch:last-child::before {
+    content: '└─';
+}
+
+.branch-label {
+    color: #8e44ad;
+    font-weight: bold;
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 5px;
+    border: 1px solid #e9ecef;
+    font-size: 12px;
+}
+
+.branch-content {
+    margin-left: 15px;
+}
+
+/* Mejoras para la matriz de confusión */
+.confusion-details {
+    margin-top: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.confusion-details h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8px;
+}
+
+.metrics-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.metric-item {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.metric-item .metric-label {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.metric-item .metric-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #27ae60;
+    margin-top: 4px;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resultsModelSelect = document.getElementById('resultsModelSelect');
+    const refreshResultsModels = document.getElementById('refreshResultsModels');
+    const metricsCard = document.getElementById('metricsCard');
+    const confusionCard = document.getElementById('confusionCard');
+    const treeCard = document.getElementById('treeCard');
+    const featuresCard = document.getElementById('featuresCard');
+    
+    let currentResults = null;
+    let charts = {};
+    
+    // Load available models
+    function loadResultsModels() {
+        fetch('/api/models')
+            .then(response => response.json())
+            .then(data => {
+                resultsModelSelect.innerHTML = '<option value="">Selecciona un modelo para ver resultados...</option>';
+                
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id || model.model_id;
+                        option.textContent = `${model.name || model.algorithm.toUpperCase()}_${model.id || model.model_id} - ${model.algorithm.toUpperCase()} (${(model.accuracy * 100).toFixed(2)}%)`;
+                        resultsModelSelect.appendChild(option);
+                    });
+                    
+                    // Auto-select the last trained model if available
+                    const selectedModelId = window.localStorage.getItem('selectedModelId') || window.localStorage.getItem('lastTrainedModel');
+                    if (selectedModelId) {
+                        const option = Array.from(resultsModelSelect.options).find(opt => opt.value === selectedModelId);
+                        if (option) {
+                            resultsModelSelect.value = selectedModelId;
+                            loadModelResults(selectedModelId);
+                            // Clear the stored ID after use
+                            window.localStorage.removeItem('selectedModelId');
+                        }
+                    }
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = 'No hay modelos disponibles';
+                    option.disabled = true;
+                    resultsModelSelect.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading models:', error);
+                showMessage('Error al cargar los modelos', 'error');
+            });
+    }
+    
+    // Handle model selection for results
+    resultsModelSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadModelResults(this.value);
+        } else {
+            hideAllCards();
+        }
+    });
+    
+    function hideAllCards() {
+        metricsCard.style.display = 'none';
+        confusionCard.style.display = 'none';
+        treeCard.style.display = 'none';
+        featuresCard.style.display = 'none';
+    }
+    
+    function loadModelResults(modelId) {
+        showMessage('Cargando resultados...', 'info');
+        
+        fetch(`/api/models/${modelId}/results`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                currentResults = data;
+                displayResults(data);
+                clearMessage();
+            })
+            .catch(error => {
+                console.error('Error loading model results:', error);
+                showMessage(`Error al cargar los resultados del modelo: ${error.message}`, 'error');
+                hideAllCards();
+            });
+    }
+    
+    function displayResults(results) {
+        // Show metrics
+        displayMetrics(results.metrics);
+        metricsCard.style.display = 'block';
+        
+        // Show confusion matrix
+        if (results.confusion_matrix) {
+            displayConfusionMatrix(results.confusion_matrix, results.class_names);
+            confusionCard.style.display = 'block';
+        }
+        
+        // Show decision tree (only for ID3)
+        if (results.algorithm === 'id3' && results.tree_structure) {
+            displayDecisionTree(results.tree_structure);
+            treeCard.style.display = 'block';
+        }
+        
+        // Show feature analysis
+        if (results.feature_importance || results.feature_stats) {
+            displayFeatureAnalysis(results);
+            featuresCard.style.display = 'block';
+        }
+    }
+    
+    function displayMetrics(metrics) {
+        const metricsGrid = document.getElementById('metricsGrid');
+        
+        const metricCards = [
+            { key: 'accuracy', label: 'Precisión', description: 'Porcentaje de predicciones correctas', format: 'percentage' },
+            { key: 'precision', label: 'Precisión', description: 'Precisión promedio por clase', format: 'percentage' },
+            { key: 'recall', label: 'Recall', description: 'Recall promedio por clase', format: 'percentage' },
+            { key: 'f1_score', label: 'F1-Score', description: 'Media armónica de precisión y recall', format: 'percentage' },
+            { key: 'support', label: 'Soporte', description: 'Número total de muestras', format: 'number' }
+        ];
+        
+        metricsGrid.innerHTML = metricCards.map(metric => {
+            const value = metrics[metric.key];
+            const displayValue = metric.format === 'percentage' 
+                ? `${(value * 100).toFixed(2)}%` 
+                : value.toFixed(0);
+            
+            return `
+                <div class="metric-card">
+                    <div class="metric-value">${displayValue}</div>
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-description">${metric.description}</div>
+                </div>
+            `;
+        }).join('');
+        
+        // Display classification report
+        if (metrics.classification_report) {
+            displayClassificationReport(metrics.classification_report);
+        }
+    }
+    
+    function displayClassificationReport(report) {
+        const container = document.getElementById('classificationReport');
+        
+        const headers = ['Clase', 'Precisión', 'Recall', 'F1-Score', 'Soporte'];
+        
+        let tableHTML = `
+            <table class="weka-table">
+                <thead>
+                    <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+        `;
+        
+        // Add rows for each class
+        Object.entries(report).forEach(([className, metrics]) => {
+            if (typeof metrics === 'object' && !['accuracy', 'macro avg', 'weighted avg'].includes(className)) {
+                tableHTML += `
+                    <tr>
+                        <td><strong>${className}</strong></td>
+                        <td>${(metrics.precision * 100).toFixed(2)}%</td>
+                        <td>${(metrics.recall * 100).toFixed(2)}%</td>
+                        <td>${(metrics['f1-score'] * 100).toFixed(2)}%</td>
+                        <td>${metrics.support}</td>
+                    </tr>
+                `;
+            }
+        });
+        
+        // Add summary rows
+        if (report['macro avg']) {
+            tableHTML += `
+                <tr style="border-top: 2px solid #333;">
+                    <td><strong>Promedio Macro</strong></td>
+                    <td>${(report['macro avg'].precision * 100).toFixed(2)}%</td>
+                    <td>${(report['macro avg'].recall * 100).toFixed(2)}%</td>
+                    <td>${(report['macro avg']['f1-score'] * 100).toFixed(2)}%</td>
+                    <td>${report['macro avg'].support}</td>
+                </tr>
+            `;
+        }
+        
+        if (report['weighted avg']) {
+            tableHTML += `
+                <tr>
+                    <td><strong>Promedio Ponderado</strong></td>
+                    <td>${(report['weighted avg'].precision * 100).toFixed(2)}%</td>
+                    <td>${(report['weighted avg'].recall * 100).toFixed(2)}%</td>
+                    <td>${(report['weighted avg']['f1-score'] * 100).toFixed(2)}%</td>
+                    <td>${report['weighted avg'].support}</td>
+                </tr>
+            `;
+        }
+        
+        tableHTML += '</tbody></table>';
+        container.innerHTML = tableHTML;
+    }
+    
+    function displayConfusionMatrix(matrix, classNames) {
+        const canvas = document.getElementById('confusionMatrix');
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart
+        if (charts.confusionMatrix) {
+            charts.confusionMatrix.destroy();
+        }
+        
+        // Create a better heatmap visualization
+        const total = matrix.flat().reduce((sum, val) => sum + val, 0);
+        const maxValue = Math.max(...matrix.flat());
+        
+        // Prepare data for matrix heatmap
+        const matrixData = [];
+        for (let i = 0; i < classNames.length; i++) {
+            for (let j = 0; j < classNames.length; j++) {
+                const value = matrix[i][j];
+                const percentage = ((value / total) * 100).toFixed(1);
+                matrixData.push({
+                    x: j,
+                    y: classNames.length - 1 - i, // Flip Y axis
+                    v: value,
+                    percentage: percentage,
+                    actual: classNames[i],
+                    predicted: classNames[j],
+                    isCorrect: i === j
+                });
+            }
+        }
+        
+        charts.confusionMatrix = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Matriz de Confusión',
+                    data: matrixData,
+                    backgroundColor: function(context) {
+                        const point = context.parsed;
+                        const value = point.v;
+                        const isCorrect = point.isCorrect;
+                        
+                        if (value === 0) {
+                            return 'rgba(240, 240, 240, 0.5)';
+                        }
+                        
+                        const intensity = Math.min(value / maxValue, 1);
+                        
+                        if (isCorrect) {
+                            // Diagonal (correct predictions) - Green gradient
+                            return `rgba(46, 125, 50, ${0.3 + intensity * 0.7})`;
+                        } else {
+                            // Off-diagonal (incorrect predictions) - Red gradient
+                            return `rgba(198, 40, 40, ${0.3 + intensity * 0.7})`;
+                        }
+                    },
+                    borderColor: function(context) {
+                        const point = context.parsed;
+                        return point.isCorrect ? 'rgba(46, 125, 50, 1)' : 'rgba(198, 40, 40, 1)';
+                    },
+                    borderWidth: 2,
+                    pointRadius: function(context) {
+                        const point = context.parsed;
+                        const value = point.v;
+                        return Math.max(15, Math.min(40, (value / maxValue) * 35 + 15));
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: 20
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: -0.5,
+                        max: classNames.length - 0.5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return classNames[Math.round(value)] || '';
+                            },
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Clase Predicha',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#333'
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        min: -0.5,
+                        max: classNames.length - 0.5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                const index = classNames.length - 1 - Math.round(value);
+                                return classNames[index] || '';
+                            },
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Clase Real',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#333'
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Matriz de Confusión',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        color: '#333',
+                        padding: 20
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 12
+                        },
+                        callbacks: {
+                            title: function() {
+                                return 'Detalles de Predicción';
+                            },
+                            label: function(context) {
+                                const point = context.raw;
+                                return [
+                                    `Clase Real: ${point.actual}`,
+                                    `Clase Predicha: ${point.predicted}`,
+                                    `Cantidad: ${point.v}`,
+                                    `Porcentaje: ${point.percentage}%`,
+                                    point.isCorrect ? '✅ Predicción Correcta' : '❌ Predicción Incorrecta'
+                                ];
+                            }
+                        }
+                    }
+                },
+                onHover: function(event, elements) {
+                    event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                }
+            }
+        });
+        
+        // Add value labels on the matrix
+        setTimeout(() => {
+            const chartInstance = charts.confusionMatrix;
+            const ctx = chartInstance.ctx;
+            
+            chartInstance.data.datasets[0].data.forEach((point, index) => {
+                const meta = chartInstance.getDatasetMeta(0);
+                const element = meta.data[index];
+                
+                if (element && point.v > 0) {
+                    const position = element.getProps(['x', 'y']);
+                    
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = point.v > maxValue * 0.5 ? 'white' : 'black';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText(point.v.toString(), position.x, position.y);
+                    ctx.restore();
+                }
+            });
+        }, 100);
+        
+        // Display additional confusion matrix details
+        displayConfusionDetails(matrix, classNames);
+    }
+    
+    function displayConfusionDetails(matrix, classNames) {
+        const container = document.getElementById('confusionDetails');
+        
+        // Calculate overall metrics
+        let totalCorrect = 0;
+        let totalSamples = 0;
+        let overallPrecision = 0;
+        let overallRecall = 0;
+        
+        for (let i = 0; i < classNames.length; i++) {
+            totalCorrect += matrix[i][i];
+            totalSamples += matrix[i].reduce((sum, val) => sum + val, 0);
+        }
+        
+        const accuracy = (totalCorrect / totalSamples * 100).toFixed(2);
+        
+        let detailsHTML = '<h4>📊 Análisis Detallado de la Matriz de Confusión</h4>';
+        
+        // Overall metrics summary
+        detailsHTML += '<div class="metrics-summary">';
+        detailsHTML += `
+            <div class="metric-item">
+                <div class="metric-label">Precisión Global</div>
+                <div class="metric-value">${accuracy}%</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">Total de Muestras</div>
+                <div class="metric-value">${totalSamples}</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">Predicciones Correctas</div>
+                <div class="metric-value">${totalCorrect}</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">Predicciones Incorrectas</div>
+                <div class="metric-value">${totalSamples - totalCorrect}</div>
+            </div>
+        `;
+        detailsHTML += '</div>';
+        
+        // Per-class detailed metrics
+        detailsHTML += '<h5 style="margin-top: 25px; color: #2c3e50;">📋 Métricas por Clase</h5>';
+        detailsHTML += '<div class="weka-style" style="background: white; border: 1px solid #dee2e6;">';
+        
+        classNames.forEach((className, i) => {
+            const tp = matrix[i][i];
+            const fp = matrix.map(row => row[i]).reduce((sum, val, idx) => idx !== i ? sum + val : sum, 0);
+            const fn = matrix[i].reduce((sum, val, idx) => idx !== i ? sum + val : sum, 0);
+            const tn = matrix.flat().reduce((sum, val) => sum + val, 0) - tp - fp - fn;
+            
+            const precision = tp / (tp + fp) || 0;
+            const recall = tp / (tp + fn) || 0;
+            const specificity = tn / (tn + fp) || 0;
+            const f1Score = 2 * (precision * recall) / (precision + recall) || 0;
+            
+            // Color coding based on performance
+            const performanceColor = precision > 0.8 ? '#27ae60' : precision > 0.6 ? '#f39c12' : '#e74c3c';
+            
+            detailsHTML += `
+                <div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ${performanceColor}; background: #f8f9fa;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="color: #2c3e50; font-size: 16px;">🏷️ Clase: ${className}</strong>
+                        <span style="background: ${performanceColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                            ${precision > 0.8 ? 'EXCELENTE' : precision > 0.6 ? 'BUENO' : 'MEJORABLE'}
+                        </span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
+                        <div><strong>VP:</strong> ${tp} <span style="color: #7f8c8d;">(Verdaderos Positivos)</span></div>
+                        <div><strong>FP:</strong> ${fp} <span style="color: #7f8c8d;">(Falsos Positivos)</span></div>
+                        <div><strong>FN:</strong> ${fn} <span style="color: #7f8c8d;">(Falsos Negativos)</span></div>
+                        <div><strong>VN:</strong> ${tn} <span style="color: #7f8c8d;">(Verdaderos Negativos)</span></div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; font-size: 13px;">
+                        <div><strong>Precisión:</strong> <span style="color: ${performanceColor}; font-weight: bold;">${(precision * 100).toFixed(1)}%</span></div>
+                        <div><strong>Recall:</strong> <span style="color: ${performanceColor}; font-weight: bold;">${(recall * 100).toFixed(1)}%</span></div>
+                        <div><strong>F1-Score:</strong> <span style="color: ${performanceColor}; font-weight: bold;">${(f1Score * 100).toFixed(1)}%</span></div>
+                        <div><strong>Especificidad:</strong> <span style="color: ${performanceColor}; font-weight: bold;">${(specificity * 100).toFixed(1)}%</span></div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        detailsHTML += '</div>';
+        
+        // Add interpretation guide
+        detailsHTML += `
+            <div style="margin-top: 20px; padding: 15px; background: #e8f4fd; border-radius: 8px; border-left: 4px solid #3498db;">
+                <h6 style="color: #2c3e50; margin-bottom: 10px;">📚 Guía de Interpretación</h6>
+                <div style="font-size: 12px; color: #5d6d7e; line-height: 1.5;">
+                    <strong>Precisión:</strong> De todas las predicciones positivas, qué porcentaje fue correcto<br>
+                    <strong>Recall (Sensibilidad):</strong> De todas las instancias positivas reales, qué porcentaje se detectó<br>
+                    <strong>F1-Score:</strong> Media armónica entre precisión y recall<br>
+                    <strong>Especificidad:</strong> De todas las instancias negativas reales, qué porcentaje se identificó correctamente
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = detailsHTML;
+    }
+    
+    function displayDecisionTree(treeStructure) {
+        const container = document.getElementById('treeVisualization');
+        const textOutput = document.getElementById('treeTextOutput');
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        // Create Weka-style tree visualization
+        const treeHTML = createWekaStyleTree(treeStructure);
+        container.innerHTML = treeHTML;
+        
+        // Display text representation in Weka format
+        textOutput.textContent = generateWekaTreeText(treeStructure, 0);
+        
+        // Add tree controls functionality
+        setupTreeControls();
+    }
+    
+    function createWekaStyleTree(node, level = 0, isRoot = true) {
+        if (!node) return '';
+        
+        const isLeaf = !node.children || node.children.length === 0;
+        
+        let html = '';
+        
+        if (isRoot) {
+            html += '<div class="weka-tree-container">';
+        }
+        
+        html += `<div class="weka-node ${isLeaf ? 'leaf-node' : 'internal-node'}" data-level="${level}">`;
+        
+        if (isLeaf) {
+            // Leaf node - Weka style
+            html += `<div class="node-content leaf-content">`;
+            html += `<span class="class-label">${node.class || 'Unknown'}</span>`;
+            if (node.samples) {
+                html += ` <span class="sample-count">(${node.samples})</span>`;
+            }
+            if (node.confidence) {
+                html += ` <span class="confidence">[${(node.confidence * 100).toFixed(1)}%]</span>`;
+            }
+            html += `</div>`;
+        } else {
+            // Internal node - Weka style
+            html += `<div class="node-content internal-content">`;
+            html += `<span class="feature-name">${node.feature}</span>`;
+            if (node.samples) {
+                html += ` <span class="sample-count">(${node.samples})</span>`;
+            }
+            html += `</div>`;
+            
+            // Add branches
+            if (node.children && node.children.length > 0) {
+                html += '<div class="weka-branches">';
+                
+                node.children.forEach((child, index) => {
+                    html += '<div class="weka-branch">';
+                    
+                    // Branch condition/label
+                    html += `<div class="branch-label">`;
+                    if (child.condition) {
+                        html += child.condition;
+                    } else if (child.value !== undefined) {
+                        html += `= ${child.value}`;
+                    } else {
+                        html += `Branch ${index + 1}`;
+                    }
+                    html += `</div>`;
+                    
+                    // Recursive child nodes
+                    html += '<div class="branch-content">';
+                    html += createWekaStyleTree(child, level + 1, false);
+                    html += '</div>';
+                    
+                    html += '</div>';
+                });
+                
+                html += '</div>';
+            }
+        }
+        
+        html += '</div>';
+        
+        if (isRoot) {
+            html += '</div>';
+        }
+        
+        return html;
+    }
+    
+    function generateWekaTreeText(node, level, branchCondition = '') {
+        if (!node) return '';
+        
+        const indent = '|   '.repeat(level);
+        let text = '';
+        
+        if (level > 0) {
+            text += indent.slice(0, -4) + '|   ';
+        }
+        
+        if (branchCondition) {
+            text += branchCondition + '\n';
+            text += indent;
+        }
+        
+        const isLeaf = !node.children || node.children.length === 0;
+        
+        if (isLeaf) {
+            text += `${node.class || 'Unknown'}`;
+            if (node.samples) {
+                text += ` (${node.samples})`;
+            }
+            if (node.confidence) {
+                text += ` [${(node.confidence * 100).toFixed(1)}%]`;
+            }
+            text += '\n';
+        } else {
+            text += `${node.feature}`;
+            if (node.samples) {
+                text += ` (${node.samples})`;
+            }
+            text += '\n';
+            
+            if (node.children) {
+                node.children.forEach((child, index) => {
+                    let condition = '';
+                    if (child.condition) {
+                        condition = child.condition;
+                    } else if (child.value !== undefined) {
+                        condition = `= ${child.value}`;
+                    } else {
+                        condition = `Branch ${index + 1}`;
+                    }
+                    
+                    text += generateWekaTreeText(child, level + 1, condition);
+                });
+            }
+        }
+        
+        return text;
+    }
+    
+    function setupTreeControls() {
+        document.getElementById('expandTree').addEventListener('click', function() {
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                node.style.display = 'block';
+            });
+        });
+        
+        document.getElementById('collapseTree').addEventListener('click', function() {
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach((node, index) => {
+                if (index > 0) { // Keep root visible
+                    node.style.display = 'none';
+                }
+            });
+        });
+        
+        document.getElementById('downloadTree').addEventListener('click', function() {
+            // Convert tree to image and download
+            downloadTreeAsImage();
+        });
+    }
+    
+    function displayFeatureAnalysis(results) {
+        if (results.feature_importance) {
+            displayFeatureImportance(results.feature_importance);
+        }
+        
+        if (results.feature_stats) {
+            displayFeatureStats(results.feature_stats);
+        }
+    }
+    
+    function displayFeatureImportance(importance) {
+        const canvas = document.getElementById('featureImportanceChart');
+        const ctx = canvas.getContext('2d');
+        
+        if (charts.featureImportance) {
+            charts.featureImportance.destroy();
+        }
+        
+        const features = Object.keys(importance);
+        const values = Object.values(importance);
+        
+        charts.featureImportance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: features,
+                datasets: [{
+                    label: 'Importancia',
+                    data: values,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Importancia'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Características'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Importancia de Características'
+                    }
+                }
+            }
+        });
+    }
+    
+    function displayFeatureStats(stats) {
+        const container = document.getElementById('featureStatsTable');
+        
+        let tableHTML = `
+            <table class="weka-table">
+                <thead>
+                    <tr>
+                        <th>Característica</th>
+                        <th>Media</th>
+                        <th>Std Dev</th>
+                        <th>Mín</th>
+                        <th>Máx</th>
+                        <th>Valores Únicos</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        Object.entries(stats).forEach(([feature, stat]) => {
+            tableHTML += `
+                <tr>
+                    <td><strong>${feature}</strong></td>
+                    <td>${stat.mean ? stat.mean.toFixed(3) : 'N/A'}</td>
+                    <td>${stat.std ? stat.std.toFixed(3) : 'N/A'}</td>
+                    <td>${stat.min !== undefined ? stat.min : 'N/A'}</td>
+                    <td>${stat.max !== undefined ? stat.max : 'N/A'}</td>
+                    <td>${stat.unique_values || 'N/A'}</td>
+                </tr>
+            `;
+        });
+        
+        tableHTML += '</tbody></table>';
+        container.innerHTML = tableHTML;
+    }
+    
+    // Comparison functionality
+    document.getElementById('loadComparison').addEventListener('click', function() {
+        loadModelComparison();
+    });
+    
+    function loadModelComparison() {
+        fetch('/api/models/comparison')
+            .then(response => response.json())
+            .then(data => {
+                displayModelComparison(data);
+            })
+            .catch(error => {
+                console.error('Error loading model comparison:', error);
+                showMessage('Error al cargar la comparación de modelos', 'error');
+            });
+    }
+    
+    function displayModelComparison(comparisonData) {
+        const canvas = document.getElementById('comparisonChart');
+        const ctx = canvas.getContext('2d');
+        
+        if (charts.comparison) {
+            charts.comparison.destroy();
+        }
+        
+        const models = comparisonData.models || [];
+        const metrics = ['accuracy', 'precision', 'recall', 'f1_score'];
+        
+        const datasets = metrics.map((metric, index) => ({
+            label: metric.charAt(0).toUpperCase() + metric.slice(1),
+            data: models.map(model => model.metrics[metric] * 100),
+            backgroundColor: `rgba(${54 + index * 50}, ${162 - index * 20}, ${235 - index * 30}, 0.8)`,
+            borderColor: `rgba(${54 + index * 50}, ${162 - index * 20}, ${235 - index * 30}, 1)`,
+            borderWidth: 1
+        }));
+        
+        charts.comparison = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: models.map(model => `${model.name} (${model.algorithm.toUpperCase()})`),
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Porcentaje (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Comparación de Modelos'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Export functionality
+    document.getElementById('exportResults').addEventListener('click', function() {
+        if (currentResults) {
+            exportResults(currentResults);
+        } else {
+            showMessage('No hay resultados para exportar', 'warning');
+        }
+    });
+    
+    function exportResults(results) {
+        const exportData = {
+            model_info: {
+                algorithm: results.algorithm,
+                accuracy: results.metrics.accuracy,
+                created_at: new Date().toISOString()
+            },
+            metrics: results.metrics,
+            confusion_matrix: results.confusion_matrix,
+            class_names: results.class_names
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `model_results_${results.algorithm}_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+    
+    function downloadTreeAsImage() {
+        const treeContainer = document.getElementById('treeVisualization');
+        
+        // Use html2canvas library if available, otherwise show message
+        if (typeof html2canvas !== 'undefined') {
+            html2canvas(treeContainer).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'decision_tree.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        } else {
+            showMessage('Funcionalidad de descarga de imagen no disponible', 'warning');
+        }
+    }
+    
+    function showMessage(message, type = 'info') {
+        let messageDiv = document.querySelector('.message-display');
+        if (!messageDiv) {
+            messageDiv = document.createElement('div');
+            messageDiv.className = 'message-display';
+            document.querySelector('.results-container').insertBefore(messageDiv, document.querySelector('.results-container').firstChild);
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="alert alert-${type}">
+                ${message}
+            </div>
+        `;
+    }
+    
+    function clearMessage() {
+        const messageDiv = document.querySelector('.message-display');
+        if (messageDiv) {
+            messageDiv.innerHTML = '';
+        }
+    }
+    
+    // Event listeners
+    refreshResultsModels.addEventListener('click', loadResultsModels);
+    
+    // Initialize
+    loadResultsModels();
+});
+</script>
+{% endblock %}

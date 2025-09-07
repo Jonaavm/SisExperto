@@ -1,0 +1,42 @@
+[
+  {
+    "id": "model_1757205904",
+    "model_id": "model_1757205904",
+    "name": "ID3_model_1757205904",
+    "algorithm": "id3",
+    "target": "variety",
+    "created_at": "2025-09-06T18:45:04.472946",
+    "model_path": "models\\final_model.joblib",
+    "accuracy": 0.85
+  },
+  {
+    "id": "model_1757205937",
+    "model_id": "model_1757205937",
+    "name": "ID3_model_1757205937",
+    "algorithm": "id3",
+    "target": "variety",
+    "created_at": "2025-09-06T18:45:37.795756",
+    "model_path": "models\\final_model.joblib",
+    "accuracy": 0.85
+  },
+  {
+    "id": "model_1757205944",
+    "model_id": "model_1757205944",
+    "name": "ID3_model_1757205944",
+    "algorithm": "id3",
+    "target": "variety",
+    "created_at": "2025-09-06T18:45:44.571996",
+    "model_path": "models\\final_model.joblib",
+    "accuracy": 0.85
+  },
+  {
+    "id": "model_1757206054",
+    "model_id": "model_1757206054",
+    "name": "ID3_model_1757206054",
+    "algorithm": "id3",
+    "target": "variety",
+    "created_at": "2025-09-06T18:47:34.859226",
+    "model_path": "models\\final_model.joblib",
+    "accuracy": 0.9200000000000002
+  }
+]

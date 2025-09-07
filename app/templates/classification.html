@@ -1,0 +1,701 @@
+{% extends "layout.html" %}
+
+{% block title %}Clasificación - Sistema Experto{% endblock %}
+
+{% block content %}
+<div class="classification-container">
+    <div class="header-section">
+        <h1>🔍 Clasificación de Ejemplos</h1>
+        <p>Clasifica nuevos ejemplos usando modelos previamente entrenados</p>
+    </div>
+
+    <!-- Selección de Modelo -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🤖 Seleccionar Modelo</h2>
+        </div>
+        <div class="card-body">
+            <div class="model-selector">
+                <div class="config-group">
+                    <label for="modelSelect">Modelo Entrenado:</label>
+                    <select id="modelSelect" class="form-select">
+                        <option value="">Selecciona un modelo...</option>
+                    </select>
+                    <button id="refreshModels" class="btn btn-secondary">
+                        <i>🔄</i> Actualizar Lista
+                    </button>
+                </div>
+                
+                <div id="modelInfo" class="model-info" style="display: none;">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Algoritmo:</strong>
+                            <span id="modelAlgorithm">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Precisión:</strong>
+                            <span id="modelAccuracy">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Fecha:</strong>
+                            <span id="modelDate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Características:</strong>
+                            <span id="modelFeatures">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Clasificación -->
+    <div class="card" id="classifyCard" style="display: none;">
+        <div class="card-header">
+            <h2>📝 Datos del Ejemplo</h2>
+        </div>
+        <div class="card-body">
+            <form id="classifyForm" class="classify-form">
+                <!-- Los campos se generarán dinámicamente -->
+            </form>
+            
+            <div class="form-actions">
+                <button id="clearBtn" type="button" class="btn btn-secondary">
+                    <i>🗑️</i> Limpiar Campos
+                </button>
+                <button id="classifyBtn" type="button" class="btn btn-primary">
+                    <i>🎯</i> Clasificar Ejemplo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado de Clasificación -->
+    <div class="card" id="resultCard" style="display: none;">
+        <div class="card-header">
+            <h2>📊 Resultado de Clasificación</h2>
+        </div>
+        <div class="card-body">
+            <div id="classifyResult" class="result-container">
+                <!-- Resultado se mostrará aquí -->
+            </div>
+            
+            <div class="result-actions">
+                <button id="newClassification" class="btn btn-success">
+                    <i>➕</i> Nueva Clasificación
+                </button>
+                <button id="saveResult" class="btn btn-info">
+                    <i>💾</i> Guardar Resultado
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Clasificaciones -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📋 Historial de Clasificaciones</h2>
+        </div>
+        <div class="card-body">
+            <div class="history-controls">
+                <button id="clearHistory" class="btn btn-warning">
+                    <i>🗑️</i> Limpiar Historial
+                </button>
+                <button id="exportHistory" class="btn btn-info">
+                    <i>📤</i> Exportar CSV
+                </button>
+            </div>
+            
+            <div id="historyContainer" class="history-container">
+                <div class="no-history">
+                    <p>No hay clasificaciones en el historial.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.classification-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header-section h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.header-section p {
+    color: #7f8c8d;
+    font-size: 1.1em;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.model-selector {
+    display: grid;
+    gap: 20px;
+}
+
+.config-group {
+    margin-bottom: 20px;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    margin-bottom: 10px;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.model-info {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.classify-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e6ed;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.result-container {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.result-prediction {
+    font-size: 2em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.result-confidence {
+    font-size: 1.2em;
+    color: #7f8c8d;
+    margin-bottom: 20px;
+}
+
+.result-details {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.result-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.history-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.history-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.no-history {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 40px;
+}
+
+.history-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.history-item:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.history-date {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.history-prediction {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.history-details {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modelSelect = document.getElementById('modelSelect');
+    const modelInfo = document.getElementById('modelInfo');
+    const classifyCard = document.getElementById('classifyCard');
+    const resultCard = document.getElementById('resultCard');
+    const classifyForm = document.getElementById('classifyForm');
+    const refreshModels = document.getElementById('refreshModels');
+    const clearBtn = document.getElementById('clearBtn');
+    const classifyBtn = document.getElementById('classifyBtn');
+    const newClassification = document.getElementById('newClassification');
+    
+    let currentModel = null;
+    let classificationHistory = JSON.parse(localStorage.getItem('classificationHistory')) || [];
+    
+    // Load available models
+    function loadModels() {
+        fetch('/api/models')
+            .then(response => response.json())
+            .then(data => {
+                modelSelect.innerHTML = '<option value="">Selecciona un modelo...</option>';
+                
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = `${model.name} - ${model.algorithm.toUpperCase()} (${(model.accuracy * 100).toFixed(2)}%)`;
+                        modelSelect.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = 'No hay modelos disponibles';
+                    option.disabled = true;
+                    modelSelect.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading models:', error);
+                showMessage('Error al cargar los modelos', 'error');
+            });
+    }
+    
+    // Handle model selection
+    modelSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadModelInfo(this.value);
+        } else {
+            modelInfo.style.display = 'none';
+            classifyCard.style.display = 'none';
+            resultCard.style.display = 'none';
+        }
+    });
+    
+    function loadModelInfo(modelId) {
+        fetch(`/api/models/${modelId}`)
+            .then(response => response.json())
+            .then(data => {
+                currentModel = data;
+                
+                // Update model info display
+                document.getElementById('modelAlgorithm').textContent = data.algorithm.toUpperCase();
+                document.getElementById('modelAccuracy').textContent = `${(data.accuracy * 100).toFixed(2)}%`;
+                document.getElementById('modelDate').textContent = new Date(data.created_at).toLocaleDateString();
+                document.getElementById('modelFeatures').textContent = data.features.join(', ');
+                
+                modelInfo.style.display = 'block';
+                generateClassificationForm(data.features);
+                classifyCard.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error loading model info:', error);
+                showMessage('Error al cargar la información del modelo', 'error');
+            });
+    }
+    
+    function generateClassificationForm(features) {
+        classifyForm.innerHTML = '';
+        
+        features.forEach(feature => {
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+            
+            const label = document.createElement('label');
+            label.textContent = feature;
+            label.setAttribute('for', `input_${feature}`);
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = `input_${feature}`;
+            input.name = feature;
+            input.className = 'form-input';
+            input.placeholder = `Ingresa ${feature}`;
+            input.required = true;
+            
+            formGroup.appendChild(label);
+            formGroup.appendChild(input);
+            classifyForm.appendChild(formGroup);
+        });
+    }
+    
+    // Handle classification
+    classifyBtn.addEventListener('click', function() {
+        if (!currentModel) {
+            showMessage('Por favor selecciona un modelo primero', 'error');
+            return;
+        }
+        
+        const formData = new FormData(classifyForm);
+        const inputData = {};
+        
+        for (let [key, value] of formData.entries()) {
+            inputData[key] = value;
+        }
+        
+        // Validate inputs
+        if (Object.values(inputData).some(val => !val.trim())) {
+            showMessage('Por favor completa todos los campos', 'error');
+            return;
+        }
+        
+        classifyBtn.disabled = true;
+        classifyBtn.innerHTML = '<i>⏳</i> Clasificando...';
+        
+        fetch('/api/classify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model_id: currentModel.id,
+                input_data: inputData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            displayClassificationResult(data);
+            saveToHistory(inputData, data);
+            resultCard.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error during classification:', error);
+            showMessage('Error durante la clasificación', 'error');
+        })
+        .finally(() => {
+            classifyBtn.disabled = false;
+            classifyBtn.innerHTML = '<i>🎯</i> Clasificar Ejemplo';
+        });
+    });
+    
+    function displayClassificationResult(result) {
+        const resultContainer = document.getElementById('classifyResult');
+        
+        resultContainer.innerHTML = `
+            <div class="result-prediction">
+                Predicción: <span style="color: #2ecc71;">${result.prediction}</span>
+            </div>
+            ${result.confidence ? `
+                <div class="result-confidence">
+                    Confianza: ${(result.confidence * 100).toFixed(2)}%
+                </div>
+            ` : ''}
+            <div class="result-details">
+                <h4>Detalles de la Clasificación</h4>
+                <p><strong>Modelo:</strong> ${currentModel.algorithm.toUpperCase()}</p>
+                <p><strong>Tiempo de procesamiento:</strong> ${result.processing_time || 'N/A'}</p>
+                ${result.explanation ? `<p><strong>Explicación:</strong> ${result.explanation}</p>` : ''}
+            </div>
+        `;
+    }
+    
+    function saveToHistory(inputData, result) {
+        const historyItem = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            model: currentModel.algorithm.toUpperCase(),
+            input: inputData,
+            prediction: result.prediction,
+            confidence: result.confidence
+        };
+        
+        classificationHistory.unshift(historyItem);
+        
+        // Keep only last 50 items
+        if (classificationHistory.length > 50) {
+            classificationHistory = classificationHistory.slice(0, 50);
+        }
+        
+        localStorage.setItem('classificationHistory', JSON.stringify(classificationHistory));
+        updateHistoryDisplay();
+    }
+    
+    function updateHistoryDisplay() {
+        const historyContainer = document.getElementById('historyContainer');
+        
+        if (classificationHistory.length === 0) {
+            historyContainer.innerHTML = '<div class="no-history"><p>No hay clasificaciones en el historial.</p></div>';
+            return;
+        }
+        
+        historyContainer.innerHTML = classificationHistory.map(item => `
+            <div class="history-item">
+                <div class="history-header">
+                    <div class="history-prediction">${item.prediction}</div>
+                    <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
+                </div>
+                <div class="history-details">
+                    Modelo: ${item.model} | Entrada: ${Object.entries(item.input).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                    ${item.confidence ? ` | Confianza: ${(item.confidence * 100).toFixed(2)}%` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Event listeners
+    refreshModels.addEventListener('click', loadModels);
+    
+    clearBtn.addEventListener('click', function() {
+        classifyForm.reset();
+    });
+    
+    newClassification.addEventListener('click', function() {
+        classifyForm.reset();
+        resultCard.style.display = 'none';
+    });
+    
+    document.getElementById('clearHistory').addEventListener('click', function() {
+        if (confirm('¿Estás seguro de que quieres limpiar el historial?')) {
+            classificationHistory = [];
+            localStorage.removeItem('classificationHistory');
+            updateHistoryDisplay();
+        }
+    });
+    
+    document.getElementById('exportHistory').addEventListener('click', function() {
+        if (classificationHistory.length === 0) {
+            showMessage('No hay datos para exportar', 'warning');
+            return;
+        }
+        
+        // Convert to CSV
+        const csvContent = convertHistoryToCSV();
+        downloadCSV(csvContent, 'classification_history.csv');
+    });
+    
+    function convertHistoryToCSV() {
+        const headers = ['Fecha', 'Modelo', 'Predicción', 'Confianza'];
+        const allInputKeys = [...new Set(classificationHistory.flatMap(item => Object.keys(item.input)))];
+        headers.push(...allInputKeys);
+        
+        const rows = [headers.join(',')];
+        
+        classificationHistory.forEach(item => {
+            const row = [
+                new Date(item.timestamp).toLocaleString(),
+                item.model,
+                item.prediction,
+                item.confidence ? (item.confidence * 100).toFixed(2) + '%' : 'N/A'
+            ];
+            
+            allInputKeys.forEach(key => {
+                row.push(item.input[key] || '');
+            });
+            
+            rows.push(row.join(','));
+        });
+        
+        return rows.join('\n');
+    }
+    
+    function downloadCSV(content, filename) {
+        const blob = new Blob([content], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+    
+    function showMessage(message, type = 'info') {
+        // Create or update message display
+        let messageDiv = document.querySelector('.message-display');
+        if (!messageDiv) {
+            messageDiv = document.createElement('div');
+            messageDiv.className = 'message-display';
+            document.querySelector('.classification-container').insertBefore(messageDiv, document.querySelector('.classification-container').firstChild);
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="alert alert-${type}">
+                ${message}
+            </div>
+        `;
+        
+        setTimeout(() => {
+            messageDiv.innerHTML = '';
+        }, 5000);
+    }
+    
+    // Initialize
+    loadModels();
+    updateHistoryDisplay();
+});
+</script>
+{% endblock %}

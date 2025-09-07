@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema Experto{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/layout.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🧠 Sistema Experto</h1>
+                <span class="nav-subtitle">Machine Learning Platform</span>
+            </div>
+            
+            <ul class="nav-links">
+                <li><a href="{{ url_for('main.index') }}" class="nav-link" data-page="home">
+                    <i>🏠</i> Inicio
+                </a></li>
+                <li><a href="{{ url_for('main.training') }}" class="nav-link" data-page="training">
+                    <i>🎯</i> Entrenamiento
+                </a></li>
+                <li><a href="{{ url_for('main.classification') }}" class="nav-link" data-page="classification">
+                    <i>🔍</i> Clasificación
+                </a></li>
+                <li><a href="{{ url_for('main.results') }}" class="nav-link" data-page="results">
+                    <i>📊</i> Resultados
+                </a></li>
+            </ul>
+            
+            <div class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <p>&copy; 2025 Sistema Experto - Machine Learning Platform</p>
+            <div class="footer-links">
+                <a href="#about">Acerca de</a>
+                <a href="#help">Ayuda</a>
+                <a href="#contact">Contacto</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static',filename='js/layout.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 
