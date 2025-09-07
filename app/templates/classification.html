@@ -527,15 +527,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 input_data: inputData
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
         .then(data => {
+            if (data.error) {
+                showMessage(`Error: ${data.error}`, 'error');
+                return;
+            }
             displayClassificationResult(data);
             saveToHistory(inputData, data);
             resultCard.style.display = 'block';
         })
         .catch(error => {
             console.error('Error during classification:', error);
-            showMessage('Error durante la clasificación', 'error');
+            const errorMessage = error.error || error.message || 'Error durante la clasificación';
+            showMessage(errorMessage, 'error');
         })
         .finally(() => {
             classifyBtn.disabled = false;

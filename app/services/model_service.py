@@ -200,25 +200,42 @@ class ModelPredictor:
         if not os.path.exists(model_file):
             raise FileNotFoundError('No trained model available')
         
-        payload = joblib.load(model_file)
-        model = payload['model']
-        prep = payload['preprocessor']
-        meta = payload['meta']
+        try:
+            payload = joblib.load(model_file)
+            model = payload['model']
+            prep = payload['preprocessor']
+            meta = payload['meta']
+            
+            print(f"DEBUG: Model meta: {meta}")
+            print(f"DEBUG: Preprocessor columns: {prep.cols}")
+            print(f"DEBUG: Input sample: {sample}")
 
-        df_sample = pd.DataFrame([sample])
-        target_col = meta['target']
-        
-        # Ensure all columns are present
-        for c in prep.cols:
-            if c not in df_sample.columns:
-                df_sample[c] = np.nan
+            df_sample = pd.DataFrame([sample])
+            target_col = meta['target']
+            
+            # Ensure all required columns are present
+            missing_cols = []
+            for c in prep.cols:
+                if c not in df_sample.columns:
+                    df_sample[c] = 0.0  # Use default value instead of NaN
+                    missing_cols.append(c)
+            
+            if missing_cols:
+                print(f"DEBUG: Added default values for missing columns: {missing_cols}")
 
-        if meta['algorithm'] == 'knn':
-            Xs = prep.transform_for_knn(df_sample)
-            pred_enc = model.predict(Xs)
-            pred_label = prep.target_encoder.inverse_transform(pred_enc.astype(int))
-            return pred_label[0]
-        else:
-            Xs = prep.transform_for_id3(df_sample)
-            pred = model.predict(Xs)
-            return pred[0]
+            if meta['algorithm'] == 'knn':
+                Xs = prep.transform_for_knn(df_sample)
+                print(f"DEBUG: Transformed data for KNN: {Xs}")
+                pred_enc = model.predict(Xs)
+                pred_label = prep.target_encoder.inverse_transform(pred_enc.astype(int))
+                return pred_label[0]
+            else:  # ID3
+                Xs = prep.transform_for_id3(df_sample)
+                print(f"DEBUG: Transformed data for ID3: {Xs}")
+                pred = model.predict(Xs)
+                print(f"DEBUG: Raw prediction: {pred}")
+                return pred[0]
+                
+        except Exception as e:
+            print(f"DEBUG: Error in predict: {type(e).__name__}: {e}")
+            raise

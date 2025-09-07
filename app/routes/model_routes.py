@@ -170,17 +170,47 @@ def create_model_routes(upload_folder, models_folder):
         """Classify a new sample"""
         try:
             body = request.json
-            sample = body.get('sample')  # dict: {col: value, ...}
+            print(f"DEBUG: Received body: {body}")  # Debug log
+            
+            # Accept both 'sample' and 'input_data' for compatibility
+            sample = body.get('sample') or body.get('input_data')
+            model_id = body.get('model_id')  # Optional, for now we use the default model
             
             if not sample:
-                return jsonify({'error': 'No sample provided'}), 400
+                return jsonify({'error': 'No sample or input_data provided'}), 400
+                
+            print(f"DEBUG: Sample to classify: {sample}")  # Debug log
+            print(f"DEBUG: Model ID: {model_id}")  # Debug log
+            
+            # Validate that sample has the required format
+            if not isinstance(sample, dict):
+                return jsonify({'error': 'Sample must be a dictionary'}), 400
+            
+            # Check if model exists
+            model_file = os.path.join(models_folder, 'final_model.joblib')
+            if not os.path.exists(model_file):
+                return jsonify({'error': 'No trained model available. Please train a model first.'}), 400
             
             prediction = predictor.predict(sample)
-            return jsonify({'prediction': prediction})
+            print(f"DEBUG: Prediction result: {prediction}")  # Debug log
+            
+            return jsonify({
+                'prediction': prediction,
+                'sample': sample,
+                'model_id': model_id
+            })
             
         except FileNotFoundError as e:
-            return jsonify({'error': str(e)}), 400
+            print(f"DEBUG: FileNotFoundError: {e}")
+            return jsonify({'error': f'Model file not found: {str(e)}'}), 400
+        except KeyError as e:
+            print(f"DEBUG: KeyError: {e}")
+            return jsonify({'error': f'Missing required column: {str(e)}'}), 400
+        except ValueError as e:
+            print(f"DEBUG: ValueError: {e}")
+            return jsonify({'error': f'Invalid data format: {str(e)}'}), 400
         except Exception as e:
+            print(f"DEBUG: Unexpected error: {type(e).__name__}: {e}")
             return jsonify({'error': f'Classification failed: {str(e)}'}), 500
 
     @bp.route('/models/<path:filename>')
